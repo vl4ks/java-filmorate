@@ -59,6 +59,51 @@ public class FilmControllerTest extends FilmorateApplicationTests {
     }
 
     @Test
+    public void testCreateFilmWithEmptyDescription() {
+        Film film = new Film(null, "Film Name", null,
+                LocalDate.of(2010, 1, 1), 100);
+
+        ValidationException exception = assertThrows(ValidationException.class, () -> {
+            filmController.create(film);
+        });
+        assertEquals("Описание не может быть пустым и длиннее 200 символов", exception.getMessage());
+    }
+
+    @Test
+    public void testCreateFilmWithLongDescription() {
+        String longDescription = "a".repeat(201);
+        Film film = new Film(null, "Film Name", longDescription,
+                LocalDate.of(2010, 1, 1), 100);
+
+        ValidationException exception = assertThrows(ValidationException.class, () -> {
+            filmController.create(film);
+        });
+        assertEquals("Описание не может быть пустым и длиннее 200 символов", exception.getMessage());
+    }
+
+    @Test
+    public void testCreateFilmWithEarlyReleaseDate() {
+        Film film = new Film(null, "Film Name", "Description",
+                LocalDate.of(1800, 1, 1), 100);
+
+        ValidationException exception = assertThrows(ValidationException.class, () -> {
+            filmController.create(film);
+        });
+        assertEquals("Дата релиза - не раньше  28 декабря 1895 года", exception.getMessage());
+    }
+
+    @Test
+    public void testCreateFilmWithNegativeDuration() {
+        Film film = new Film(null, "Film Name", "Description",
+                LocalDate.of(2000, 1, 1), -100);
+
+        ValidationException exception = assertThrows(ValidationException.class, () -> {
+            filmController.create(film);
+        });
+        assertEquals("Продолжительность фильма должна быть положительным числом", exception.getMessage());
+    }
+
+    @Test
     public void testUpdateFilm() throws Exception {
         Film film = new Film(1L, "Film Name", "Description",
                 LocalDate.of(1967, 3, 25), 100);

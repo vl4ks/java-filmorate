@@ -34,15 +34,17 @@ public class UserController {
             log.error("Ошибка при заполнении email");
             throw new ValidationException("Имейл должен быть указан и содержать символ @");
         }
-        if (user.getLogin() == null && user.getLogin().isBlank()) {
+        if (user.getLogin() == null || user.getLogin().isBlank()) {
             log.error("Ошибка при заполнении login");
             throw new ValidationException("Логин не может быть пустым и содержать пробелы");
         }
         if (user.getName() == null) {
             log.info("Если имя пустое, то присваиваем логин");
             user.setName(user.getLogin());
+        } else {
+            user.setName(user.getName());
         }
-        if (user.getBirthday().isAfter(LocalDate.now())) {
+        if (user.getBirthday() == null || user.getBirthday().isAfter(LocalDate.now())) {
             log.error("Ошибка при заполнении birthday");
             throw new ValidationException("Дата рождения не может быть в будущем");
 
@@ -52,7 +54,6 @@ public class UserController {
         user.setId(getNextId());
         user.setEmail(user.getEmail());
         user.setLogin(user.getLogin());
-        user.setName(user.getName());
         user.setBirthday(user.getBirthday());
 
         users.put(user.getId(), user);
@@ -77,25 +78,42 @@ public class UserController {
             throw new ValidationException("Id должен быть указан");
         }
 
+        log.info("Проверка наличия пользователя");
         if (users.containsKey(newUser.getId())) {
             User oldUser = users.get(newUser.getId());
 
-            if (newUser.getEmail() == null || newUser.getEmail().isBlank()) {
-                log.error("Ошибка при обновлении email: не указан");
-                throw new ValidationException("Имейл должен быть указан");
+            log.info("Проверка и обновление email");
+            if (newUser.getEmail() != null) {
+                if (newUser.getEmail().isBlank()) {
+                    log.error("Ошибка при обновлении email: не указан");
+                    throw new ValidationException("Имейл должен быть указан");
+                }
+                oldUser.setEmail(newUser.getEmail());
             }
 
-            if (newUser.getId() == null && newUser.getEmail() == null && newUser.getName() == null
-                    || newUser.getLogin() == null || newUser.getBirthday() == null) {
-                log.info("Новый пользователь соответствует уже имеющемуся");
-                newUser = oldUser;
+            log.info("Проверка и обновление login");
+            if (newUser.getLogin() != null) {
+                if (newUser.getLogin().isBlank()) {
+                    log.error("Ошибка при обновлении login");
+                    throw new ValidationException("Логин не может содержать пробелы");
+                }
+                oldUser.setLogin(newUser.getLogin());
             }
 
-            log.info("Обновляем пользователя");
-            oldUser.setEmail(newUser.getEmail());
-            oldUser.setName(newUser.getName());
-            oldUser.setLogin(newUser.getLogin());
-            oldUser.setBirthday(newUser.getBirthday());
+            log.info("Проверка и обновление name");
+            if (newUser.getName() != null) {
+                oldUser.setName(newUser.getName());
+            }
+
+            log.info("Проверка и обновление birthday");
+            if (newUser.getBirthday() != null) {
+                if (newUser.getBirthday().isAfter(LocalDate.now())) {
+                    log.error("Ошибка при обновлении birthday");
+                    throw new ValidationException("Дата рождения не может быть в будущем");
+                }
+                oldUser.setBirthday(newUser.getBirthday());
+            }
+
             log.info("Пользователь обновлен!");
             return oldUser;
         }

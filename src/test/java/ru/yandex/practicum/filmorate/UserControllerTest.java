@@ -47,6 +47,18 @@ public class UserControllerTest extends FilmorateApplicationTests {
     }
 
     @Test
+    public void testCreateUserWithEmptyName() throws Exception {
+        User user = new User(null, "mail@mail.ru", "testuser", null,
+                LocalDate.of(1946, 8, 20));
+        mockMvc.perform(post("/users")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(user)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").isNotEmpty())
+                .andExpect(jsonPath("$.name").value("testuser"));
+    }
+
+    @Test
     public void testCreateUserValidationFailure() {
         User user = new User(null, "invalidemail", "testuser", "Test User",
                 LocalDate.of(1946, 8, 20));
@@ -56,6 +68,28 @@ public class UserControllerTest extends FilmorateApplicationTests {
         });
 
         assertEquals("Имейл должен быть указан и содержать символ @", exception.getMessage());
+    }
+
+    @Test
+    public void testCreateUserWithEmptyLogin() {
+        User user = new User(null, "mail@mail.ru", " ", "Test User",
+                LocalDate.of(1946, 8, 20));
+
+        ValidationException exception = assertThrows(ValidationException.class, () -> {
+            userController.create(user);
+        });
+        assertEquals("Логин не может быть пустым и содержать пробелы", exception.getMessage());
+    }
+
+    @Test
+    public void testCreateUserWithFutureBirthday() {
+        User user = new User(null, "mail@mail.ru", "testuser", "Test User",
+                LocalDate.of(2100, 1, 1));
+
+        ValidationException exception = assertThrows(ValidationException.class, () -> {
+            userController.create(user);
+        });
+        assertEquals("Дата рождения не может быть в будущем", exception.getMessage());
     }
 
 
