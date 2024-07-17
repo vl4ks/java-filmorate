@@ -19,6 +19,7 @@ import java.util.Map;
 @Slf4j
 public class UserController {
     private final Map<Long, User> users = new HashMap<>();
+    private Long idCounter = 1L;
 
     @GetMapping
     public Collection<User> findAll() {
@@ -51,7 +52,7 @@ public class UserController {
         }
 
         log.info("Создаем нового пользователя!");
-        user.setId(getNextId());
+        user.setId(idCounter++);
         user.setEmail(user.getEmail());
         user.setLogin(user.getLogin());
         user.setBirthday(user.getBirthday());
@@ -59,15 +60,6 @@ public class UserController {
         users.put(user.getId(), user);
         log.info("Новый пользователь добавлен!");
         return user;
-    }
-
-    private long getNextId() {
-        long currentMaxId = users.keySet()
-                .stream()
-                .mapToLong(id -> id)
-                .max()
-                .orElse(0);
-        return ++currentMaxId;
     }
 
     @PutMapping

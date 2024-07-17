@@ -16,6 +16,7 @@ import java.util.Map;
 @Slf4j
 public class FilmController {
     private final Map<Long, Film> films = new HashMap<>();
+    private Long idCounter = 1L;
 
     @GetMapping
     public Collection<Film> findAll() {
@@ -44,21 +45,12 @@ public class FilmController {
 
         }
         log.info("Добавляем новый фильм");
-        film.setId(getNextId());
+        film.setId(idCounter++);
         film.setReleaseDate(film.getReleaseDate());
         film.setDuration(film.getDuration());
         films.put(film.getId(), film);
         log.info("Фильм добавлен!");
         return film;
-    }
-
-    private long getNextId() {
-        long currentMaxId = films.keySet()
-                .stream()
-                .mapToLong(id -> id)
-                .max()
-                .orElse(0);
-        return ++currentMaxId;
     }
 
     @PutMapping
