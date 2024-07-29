@@ -9,6 +9,9 @@ import ru.yandex.practicum.filmorate.controller.UserController;
 import ru.yandex.practicum.filmorate.exception.NotFoundException;
 import ru.yandex.practicum.filmorate.exception.ValidationException;
 import ru.yandex.practicum.filmorate.model.User;
+import ru.yandex.practicum.filmorate.service.UserService;
+import ru.yandex.practicum.filmorate.storage.InMemoryUserStorage;
+import ru.yandex.practicum.filmorate.storage.UserStorage;
 
 import java.time.LocalDate;
 
@@ -20,11 +23,15 @@ public class UserControllerTest extends FilmorateApplicationTests {
 
     @Autowired
     private ObjectMapper objectMapper;
+    private UserService userService;
+    private UserStorage userStorage;
     private UserController userController;
 
     @BeforeEach
     public void setUp() {
-        userController = new UserController();
+        userStorage = new InMemoryUserStorage();
+        userService = new UserService(userStorage);
+        userController = new UserController(userStorage, userService);
     }
 
     @Test
@@ -37,8 +44,13 @@ public class UserControllerTest extends FilmorateApplicationTests {
 
     @Test
     public void testCreateUser() throws Exception {
-        User user = new User(null, "mail@mail.ru", "testuser", "Test User",
-                LocalDate.of(1946, 8, 20));
+        User user = User.builder()
+                .id(null)
+                .email("mail@mail.ru")
+                .login("testuser")
+                .name("Test User")
+                .birthday(LocalDate.of(1946, 8, 20))
+                .build();
         mockMvc.perform(post("/users")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(user)))
@@ -48,8 +60,13 @@ public class UserControllerTest extends FilmorateApplicationTests {
 
     @Test
     public void testCreateUserWithEmptyName() throws Exception {
-        User user = new User(null, "mail@mail.ru", "testuser", null,
-                LocalDate.of(1946, 8, 20));
+        User user = User.builder()
+                .id(null)
+                .email("mail@mail.ru")
+                .login("testuser")
+                .name(null)
+                .birthday(LocalDate.of(1946, 8, 20))
+                .build();
         mockMvc.perform(post("/users")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(user)))
@@ -60,8 +77,13 @@ public class UserControllerTest extends FilmorateApplicationTests {
 
     @Test
     public void testCreateUserValidationFailure() {
-        User user = new User(null, "invalidemail", "testuser", "Test User",
-                LocalDate.of(1946, 8, 20));
+        User user = User.builder()
+                .id(null)
+                .email("invalidemail")
+                .login("testuser")
+                .name("Test User")
+                .birthday(LocalDate.of(1946, 8, 20))
+                .build();
 
         ValidationException exception = assertThrows(ValidationException.class, () -> {
             userController.create(user);
@@ -72,9 +94,13 @@ public class UserControllerTest extends FilmorateApplicationTests {
 
     @Test
     public void testCreateUserWithEmptyLogin() {
-        User user = new User(null, "mail@mail.ru", " ", "Test User",
-                LocalDate.of(1946, 8, 20));
-
+        User user = User.builder()
+                .id(null)
+                .email("mail@mail.ru")
+                .login("")
+                .name("Test User")
+                .birthday(LocalDate.of(1946, 8, 20))
+                .build();
         ValidationException exception = assertThrows(ValidationException.class, () -> {
             userController.create(user);
         });
@@ -83,9 +109,13 @@ public class UserControllerTest extends FilmorateApplicationTests {
 
     @Test
     public void testCreateUserWithFutureBirthday() {
-        User user = new User(null, "mail@mail.ru", "testuser", "Test User",
-                LocalDate.of(2100, 1, 1));
-
+        User user = User.builder()
+                .id(null)
+                .email("mail@mail.ru")
+                .login("testuser")
+                .name("Test User")
+                .birthday(LocalDate.of(2100, 1, 1))
+                .build();
         ValidationException exception = assertThrows(ValidationException.class, () -> {
             userController.create(user);
         });
@@ -95,14 +125,24 @@ public class UserControllerTest extends FilmorateApplicationTests {
 
     @Test
     public void testUpdateUser() throws Exception {
-        User user = new User(1L, "test2@example.com", "testuser2", "Test User2",
-                LocalDate.of(1946, 8, 20));
+        User user = User.builder()
+                .id(1L)
+                .email("test2@example.com")
+                .login("testuser2")
+                .name("Test User2")
+                .birthday(LocalDate.of(1946, 8, 20))
+                .build();
         mockMvc.perform(post("/users")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(user)));
 
-        User updatedUser = new User(1L, "test2@example.com", "updateduser", "Updated User",
-                LocalDate.of(1946, 8, 20));
+        User updatedUser = User.builder()
+                .id(1L)
+                .email("test2@example.com")
+                .login("updateduser")
+                .name("Update User")
+                .birthday(LocalDate.of(1946, 8, 20))
+                .build();
         mockMvc.perform(put("/users")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(updatedUser)))
@@ -112,8 +152,13 @@ public class UserControllerTest extends FilmorateApplicationTests {
 
     @Test
     public void testUpdateUserNotFound() {
-        User updatedUser = new User(999L, "test2@example.com", "updateduser", "Updated User",
-                LocalDate.of(1946, 8, 20));
+        User updatedUser = User.builder()
+                .id(999L)
+                .email("test2@example.com")
+                .login("updateduser")
+                .name("Update User")
+                .birthday(LocalDate.of(1946, 8, 20))
+                .build();
 
         NotFoundException exception = assertThrows(NotFoundException.class, () -> {
             userController.update(updatedUser);
