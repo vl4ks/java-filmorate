@@ -13,7 +13,6 @@ import java.util.*;
 @Component
 public class InMemoryFilmStorage implements FilmStorage {
     private final Map<Long, Film> films = new HashMap<>();
-    private final Map<Long, Set<Long>> filmLikes = new HashMap<>();
     private Long idCounter = 1L;
 
     @Override
@@ -47,7 +46,6 @@ public class InMemoryFilmStorage implements FilmStorage {
         film.setReleaseDate(film.getReleaseDate());
         film.setDuration(film.getDuration());
         films.put(film.getId(), film);
-        filmLikes.put(film.getId(), new HashSet<>());
         log.info("Фильм добавлен!");
         return film;
     }
@@ -111,7 +109,6 @@ public class InMemoryFilmStorage implements FilmStorage {
             throw new NotFoundException("Фильм с id = " + id + " не найден");
         }
         films.remove(id);
-        filmLikes.remove(id);
     }
 
     @Override
@@ -124,7 +121,8 @@ public class InMemoryFilmStorage implements FilmStorage {
         if (!films.containsKey(filmId)) {
             throw new NotFoundException("Фильм с id = " + filmId + " не найден");
         }
-        filmLikes.get(filmId).add(userId);
+        Film film = films.get(filmId);
+        film.getLikes().add(userId);
     }
 
     @Override
@@ -132,7 +130,8 @@ public class InMemoryFilmStorage implements FilmStorage {
         if (!films.containsKey(filmId)) {
             throw new NotFoundException("Фильм с id = " + filmId + " не найден");
         }
-        if (!filmLikes.get(filmId).remove(userId)) {
+        Film film = films.get(filmId);
+        if (!film.getLikes().remove(userId)) {
             throw new NotFoundException("Лайк от пользователя с id = " + userId + " для фильма с id = " + filmId + " не найден");
         }
     }

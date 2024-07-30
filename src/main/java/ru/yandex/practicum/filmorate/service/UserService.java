@@ -1,25 +1,51 @@
 package ru.yandex.practicum.filmorate.service;
 
+import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.web.bind.annotation.*;
 import ru.yandex.practicum.filmorate.exception.NotFoundException;
 import ru.yandex.practicum.filmorate.model.User;
 import ru.yandex.practicum.filmorate.storage.UserStorage;
 
+import java.util.Collection;
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 
 @Service
+@RequiredArgsConstructor
 public class UserService {
     private static final Logger log = LoggerFactory.getLogger(UserService.class);
     private final UserStorage userStorage;
 
-    @Autowired
-    public UserService(UserStorage userStorage) {
-        this.userStorage = userStorage;
+    public Collection<User> findAll() {
+        log.debug("Getting all users");
+        return userStorage.findAll();
+    }
+
+    public User create(@Valid @RequestBody User user) {
+        log.debug("Creating user: {}", user);
+        return userStorage.create(user);
+    }
+
+    public User update(@Valid @RequestBody User newUser) {
+        log.debug("Updating user: {}", newUser);
+        return userStorage.update(newUser);
+    }
+
+
+    public void delete(@PathVariable Long id) {
+        log.debug("Deleting user with id={}", id);
+        userStorage.delete(id);
+    }
+
+    public Optional<User> findById(Long id) {
+        log.debug("Searching user with id={}", id);
+        return userStorage.findById(id);
     }
 
     public void addFriend(Long userId, Long friendId) {
