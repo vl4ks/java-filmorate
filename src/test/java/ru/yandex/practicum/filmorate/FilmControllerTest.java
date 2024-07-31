@@ -7,8 +7,11 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
 import ru.yandex.practicum.filmorate.controller.FilmController;
 import ru.yandex.practicum.filmorate.exception.NotFoundException;
-import ru.yandex.practicum.filmorate.exception.ValidationException;
 import ru.yandex.practicum.filmorate.model.Film;
+import ru.yandex.practicum.filmorate.service.FilmService;
+import ru.yandex.practicum.filmorate.storage.FilmStorage;
+import ru.yandex.practicum.filmorate.storage.InMemoryFilmStorage;
+import ru.yandex.practicum.filmorate.storage.UserStorage;
 
 import java.time.LocalDate;
 
@@ -21,11 +24,17 @@ public class FilmControllerTest extends FilmorateApplicationTests {
 
     @Autowired
     private ObjectMapper objectMapper;
+
+    private FilmService filmService;
+    private FilmStorage filmStorage;
+    private UserStorage userStorage;
     private FilmController filmController;
 
     @BeforeEach
     public void setUp() {
-        filmController = new FilmController();
+        filmStorage = new InMemoryFilmStorage();
+        filmService = new FilmService(filmStorage, userStorage);
+        filmController = new FilmController(filmService);
     }
 
     @Test
@@ -38,8 +47,13 @@ public class FilmControllerTest extends FilmorateApplicationTests {
 
     @Test
     public void testCreateFilm() throws Exception {
-        Film film = new Film(null, "Film Name", "Description",
-                LocalDate.of(1967, 3, 25), 100);
+        Film film = Film.builder()
+                .id(null)
+                .name("Film Name")
+                .description("Description")
+                .releaseDate(LocalDate.of(1967, 3, 25))
+                .duration(100)
+                .build();
         mockMvc.perform(post("/films")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(film)))
@@ -49,70 +63,110 @@ public class FilmControllerTest extends FilmorateApplicationTests {
 
     @Test
     public void testCreateFilmValidationFailure() throws Exception {
-        Film film = new Film(null, "", "Description",
-                LocalDate.of(2010, 1, 1), 120);
+        Film film = Film.builder()
+                .id(null)
+                .name("")
+                .description("Description")
+                .releaseDate(LocalDate.of(2010, 1, 1))
+                .duration(120)
+                .build();
 
-        ValidationException exception = assertThrows(ValidationException.class, () -> {
-            filmController.create(film);
-        });
-        assertEquals("Название не может быть пустым", exception.getMessage());
+        mockMvc.perform(post("/films")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(film)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.error").value("Ошибка валидации: Название не может быть пустым"));
     }
 
     @Test
-    public void testCreateFilmWithEmptyDescription() {
-        Film film = new Film(null, "Film Name", null,
-                LocalDate.of(2010, 1, 1), 100);
+    public void testCreateFilmWithEmptyDescription() throws Exception {
+        Film film = Film.builder()
+                .id(null)
+                .name("Film Name")
+                .description(null)
+                .releaseDate(LocalDate.of(2010, 1, 1))
+                .duration(120)
+                .build();
 
-        ValidationException exception = assertThrows(ValidationException.class, () -> {
-            filmController.create(film);
-        });
-        assertEquals("Описание не может быть пустым и длиннее 200 символов", exception.getMessage());
+        mockMvc.perform(post("/films")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(film)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.error").value("Ошибка валидации: Описание не может быть пустым и длиннее 200 символов"));
     }
 
     @Test
-    public void testCreateFilmWithLongDescription() {
+    public void testCreateFilmWithLongDescription() throws Exception {
         String longDescription = "a".repeat(201);
-        Film film = new Film(null, "Film Name", longDescription,
-                LocalDate.of(2010, 1, 1), 100);
+        Film film = Film.builder()
+                .id(null)
+                .name("Film Name")
+                .description(longDescription)
+                .releaseDate(LocalDate.of(2010, 1, 1))
+                .duration(120)
+                .build();
 
-        ValidationException exception = assertThrows(ValidationException.class, () -> {
-            filmController.create(film);
-        });
-        assertEquals("Описание не может быть пустым и длиннее 200 символов", exception.getMessage());
+        mockMvc.perform(post("/films")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(film)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.error").value("Ошибка валидации: Описание не может быть пустым и длиннее 200 символов"));
     }
 
     @Test
-    public void testCreateFilmWithEarlyReleaseDate() {
-        Film film = new Film(null, "Film Name", "Description",
-                LocalDate.of(1800, 1, 1), 100);
+    public void testCreateFilmWithEarlyReleaseDate() throws Exception {
+        Film film = Film.builder()
+                .id(null)
+                .name("Film Name")
+                .description("Description")
+                .releaseDate(LocalDate.of(1800, 1, 1))
+                .duration(100)
+                .build();
 
-        ValidationException exception = assertThrows(ValidationException.class, () -> {
-            filmController.create(film);
-        });
-        assertEquals("Дата релиза - не раньше  28 декабря 1895 года", exception.getMessage());
+        mockMvc.perform(post("/films")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(film)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.error").value("Ошибка валидации: Дата релиза - не раньше  28 декабря 1895 года"));
     }
 
     @Test
-    public void testCreateFilmWithNegativeDuration() {
-        Film film = new Film(null, "Film Name", "Description",
-                LocalDate.of(2000, 1, 1), -100);
+    public void testCreateFilmWithNegativeDuration() throws Exception {
+        Film film = Film.builder()
+                .id(null)
+                .name("Film Name")
+                .description("Description")
+                .releaseDate(LocalDate.of(1967, 3, 25))
+                .duration(-100)
+                .build();
 
-        ValidationException exception = assertThrows(ValidationException.class, () -> {
-            filmController.create(film);
-        });
-        assertEquals("Продолжительность фильма должна быть положительным числом", exception.getMessage());
+        mockMvc.perform(post("/films")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(film)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.error").value("Ошибка валидации: Продолжительность фильма должна быть положительным числом"));
     }
 
     @Test
     public void testUpdateFilm() throws Exception {
-        Film film = new Film(1L, "Film Name", "Description",
-                LocalDate.of(1967, 3, 25), 100);
+        Film film = Film.builder()
+                .id(1L)
+                .name("Film Name")
+                .description("Description")
+                .releaseDate(LocalDate.of(1967, 3, 25))
+                .duration(100)
+                .build();
         mockMvc.perform(post("/films")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(film)));
 
-        Film updatedFilm = new Film(1L, "Updated Film Name", "Updated Description",
-                LocalDate.of(2010, 1, 1), 120);
+        Film updatedFilm = Film.builder()
+                .id(1L)
+                .name("Updated Film Name")
+                .description("Updated Description")
+                .releaseDate(LocalDate.of(2010, 1, 1))
+                .duration(120)
+                .build();
         mockMvc.perform(put("/films")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(updatedFilm)))
@@ -122,8 +176,14 @@ public class FilmControllerTest extends FilmorateApplicationTests {
 
     @Test
     public void testUpdateFilmNotFound() throws Exception {
-        Film updatedFilm = new Film(999L, "Updated Film Name", "Updated Description",
-                LocalDate.of(2010, 1, 1), 120);
+        Film updatedFilm = Film.builder()
+                .id(999L)
+                .name("Updated Film Name")
+                .description("Updated Description")
+                .releaseDate(LocalDate.of(2010, 1, 1))
+                .duration(120)
+                .build();
+
         NotFoundException exception = assertThrows(NotFoundException.class, () -> {
             filmController.update(updatedFilm);
         });

@@ -1,115 +1,74 @@
 package ru.yandex.practicum.filmorate.controller;
 
+import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import ch.qos.logback.classic.Level;
 import org.springframework.web.bind.annotation.*;
 import ru.yandex.practicum.filmorate.exception.NotFoundException;
-import ru.yandex.practicum.filmorate.exception.ValidationException;
 import ru.yandex.practicum.filmorate.model.User;
+import ru.yandex.practicum.filmorate.service.UserService;
 
-import java.time.LocalDate;
 import java.util.Collection;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.List;
+import java.util.stream.Collectors;
 
 @RestController
-@RequestMapping("/users")
 @Slf4j
+@RequestMapping("/users")
+@RequiredArgsConstructor
 public class UserController {
-    private final Map<Long, User> users = new HashMap<>();
-    private Long idCounter = 1L;
+    private final UserService userService;
+
 
     @GetMapping
     public Collection<User> findAll() {
-        return users.values();
+        log.debug("Getting all users");
+        return userService.findAll();
     }
 
     @PostMapping
-    public User create(@RequestBody User user) {
-        log.info("Проверка условий на создание пользователя");
-        ((ch.qos.logback.classic.Logger) LoggerFactory.getLogger(Logger.ROOT_LOGGER_NAME))
-                .setLevel(Level.WARN);
-        if (user.getEmail() == null || user.getEmail().isBlank() || !(user.getEmail().contains("@"))) {
-            log.error("Ошибка при заполнении email");
-            throw new ValidationException("Имейл должен быть указан и содержать символ @");
-        }
-        if (user.getLogin() == null || user.getLogin().isBlank()) {
-            log.error("Ошибка при заполнении login");
-            throw new ValidationException("Логин не может быть пустым и содержать пробелы");
-        }
-        if (user.getName() == null) {
-            log.info("Если имя пустое, то присваиваем логин");
-            user.setName(user.getLogin());
-        } else {
-            user.setName(user.getName());
-        }
-        if (user.getBirthday() == null || user.getBirthday().isAfter(LocalDate.now())) {
-            log.error("Ошибка при заполнении birthday");
-            throw new ValidationException("Дата рождения не может быть в будущем");
-
-        }
-
-        log.info("Создаем нового пользователя!");
-        user.setId(idCounter++);
-        user.setEmail(user.getEmail());
-        user.setLogin(user.getLogin());
-        user.setBirthday(user.getBirthday());
-
-        users.put(user.getId(), user);
-        log.info("Новый пользователь добавлен!");
-        return user;
+    public User create(@Valid @RequestBody User user) {
+        log.debug("Creating user: {}", user);
+        return userService.create(user);
     }
 
     @PutMapping
-    public User update(@RequestBody User newUser) {
-        log.info("Проверка условий на обновление пользователя");
-        if (newUser.getId() == null) {
-            log.error("Пустой id");
-            throw new ValidationException("Id должен быть указан");
-        }
+    public User update(@Valid @RequestBody User newUser) {
+        log.debug("Updating user: {}", newUser);
+        return userService.update(newUser);
+    }
 
-        log.info("Проверка наличия пользователя");
-        if (users.containsKey(newUser.getId())) {
-            User oldUser = users.get(newUser.getId());
+    @DeleteMapping("/{id}")
+    public void delete(@PathVariable Long id) {
+        log.debug("Deleting user with id={}", id);
+        userService.delete(id);
+    }
 
-            log.info("Проверка и обновление email");
-            if (newUser.getEmail() != null) {
-                if (newUser.getEmail().isBlank()) {
-                    log.error("Ошибка при обновлении email: не указан");
-                    throw new ValidationException("Имейл должен быть указан");
-                }
-                oldUser.setEmail(newUser.getEmail());
-            }
+    @PutMapping("/{id}/friends/{friendId}")
+    public void addFriend(@PathVariable Long id, @PathVariable Long friendId) {
+        log.debug("Adding friend with id: {} to user with id: {}", friendId, id);
+        userService.addFriend(id, friendId);
+    }
 
-            log.info("Проверка и обновление login");
-            if (newUser.getLogin() != null) {
-                if (newUser.getLogin().isBlank()) {
-                    log.error("Ошибка при обновлении login");
-                    throw new ValidationException("Логин не может содержать пробелы");
-                }
-                oldUser.setLogin(newUser.getLogin());
-            }
+    @DeleteMapping("/{id}/friends/{friendId}")
+    public void removeFriend(@PathVariable Long id, @PathVariable Long friendId) {
+        log.debug("Removing friend with id: {} from user with id: {}", friendId, id);
+        userService.removeFriend(id, friendId);
+    }
 
-            log.info("Проверка и обновление name");
-            if (newUser.getName() != null) {
-                oldUser.setName(newUser.getName());
-            }
+    @GetMapping("/{id}/friends")
+    public List<User> getFriends(@PathVariable Long id) {
+        log.debug("Getting friends for user with id: {}", id);
+        User user = userService.findById(id)
+                .orElseThrow(() -> new NotFoundException("User with id " + id + " not found"));
+        return user.getFriends().stream()
+                .map(userId -> userService.findById(userId).orElseThrow(() -> new NotFoundException("User with id " + userId + " not found")))
+                .collect(Collectors.toList());
+    }
 
-            log.info("Проверка и обновление birthday");
-            if (newUser.getBirthday() != null) {
-                if (newUser.getBirthday().isAfter(LocalDate.now())) {
-                    log.error("Ошибка при обновлении birthday");
-                    throw new ValidationException("Дата рождения не может быть в будущем");
-                }
-                oldUser.setBirthday(newUser.getBirthday());
-            }
-
-            log.info("Пользователь обновлен!");
-            return oldUser;
-        }
-        log.error("Пользователь с id = {} не найден", newUser.getId());
-        throw new NotFoundException("Пользователь с id = " + newUser.getId() + " не найден");
+    @GetMapping("/{id}/friends/common/{otherId}")
+    public List<User> getCommonFriends(@PathVariable Long id, @PathVariable Long otherId) {
+        log.debug("Getting common friends for user with id: {} and user with id: {}", id, otherId);
+        return userService.getCommonFriends(id, otherId);
     }
 }
