@@ -2,8 +2,7 @@ package ru.yandex.practicum.filmorate.service;
 
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -19,9 +18,9 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 @Service
+@Slf4j
 @RequiredArgsConstructor
 public class FilmService {
-    private static final Logger log = LoggerFactory.getLogger(FilmService.class);
     private final FilmStorage filmStorage;
     private final UserStorage userStorage;
 
