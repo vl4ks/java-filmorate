@@ -9,7 +9,7 @@ Template repository for Filmorate project.
 
 ## Схема БД
 
-
+![filmorateDB](https://github.com/vl4ks/java-filmorate/commit/dc5234d183ddbb3ec4e75f6899b7d7e1bb585393)
 
 ## SQL-запросы для модели **User**
 
