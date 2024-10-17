@@ -1,33 +1,31 @@
 package ru.yandex.practicum.filmorate;
 
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
+import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.test.context.junit.jupiter.SpringExtension;
-import org.springframework.test.web.servlet.MockMvc;
-import ru.yandex.practicum.filmorate.controller.FilmController;
-import ru.yandex.practicum.filmorate.controller.UserController;
+import org.springframework.test.context.ActiveProfiles;
+import ru.yandex.practicum.filmorate.dao.storage.FilmRepository;
+import ru.yandex.practicum.filmorate.dao.storage.UserRepository;
 
-import static org.springframework.test.web.servlet.setup.MockMvcBuilders.standaloneSetup;
+import static org.assertj.core.api.Assertions.assertThat;
 
-@ExtendWith(SpringExtension.class)
 @SpringBootTest
-@AutoConfigureMockMvc
+@ActiveProfiles("test")
+@AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
+@DisplayName("FilmorateApplication")
 public class FilmorateApplicationTests {
+    @Autowired
+    private UserRepository userStorage;
 
-	@Autowired
-	protected MockMvc mockMvc;
+    @Autowired
+    private FilmRepository filmStorage;
 
-	@Autowired
-	private UserController userController;
-
-	@Autowired
-	private FilmController filmController;
-
-	@BeforeEach
-	public void setUp() {
-		this.mockMvc = standaloneSetup(userController, filmController).build();
-	}
+    @Test
+    void contextLoads() {
+        assertThat(userStorage).isNotNull();
+        assertThat(filmStorage).isNotNull();
+    }
 }
+
