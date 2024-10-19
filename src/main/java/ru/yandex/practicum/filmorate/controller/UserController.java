@@ -20,7 +20,7 @@ import java.util.Collection;
 @RequestMapping("/users")
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 public class UserController {
-    private final UserService userService;
+    UserService userService;
 
     @GetMapping
     public Collection<User> getUsers() {

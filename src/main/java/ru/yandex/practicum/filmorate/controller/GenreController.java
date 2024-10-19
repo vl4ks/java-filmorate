@@ -19,7 +19,6 @@ public class GenreController {
     private final GenreService genreService;
 
     @GetMapping
-    @ResponseStatus(HttpStatus.OK)
     public Collection<Genre> getGenres() {
         return genreService.getAllGenres();
     }

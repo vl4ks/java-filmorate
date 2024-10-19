@@ -26,13 +26,6 @@ public class MpaRatingRepositoryTest {
 
     private static final Long TEST_RATING_ID = 3L;
 
-    static MpaRating getTestMpaRating() {
-        return MpaRating.builder()
-                .id(TEST_RATING_ID)
-                .name("PG-13")
-                .build();
-    }
-
 
     @Test
     @DisplayName("должен возвращать все рейтинги")
@@ -61,17 +54,5 @@ public class MpaRatingRepositoryTest {
         mpaRatingRepository.delete(TEST_RATING_ID);
 
         assertThrows(NotFoundException.class, () -> mpaRatingRepository.findById(TEST_RATING_ID));
-    }
-
-    @Test
-    @DisplayName("должен создавать связь между фильмом и рейтингом")
-    public void should_create_mpa_and_film() {
-        Long newFilmId = 2L;
-        Long newMpaId = 2L;
-
-        mpaRatingRepository.createMpaFilmRelation(newFilmId, newMpaId);
-
-        MpaRating mpa = mpaRatingRepository.findRatingByFilmId(newFilmId);
-        assertThat(mpa.getName()).isEqualTo("PG");
     }
 }

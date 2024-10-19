@@ -14,7 +14,5 @@ public interface GenreStorage {
 
     void delete(Long id);
 
-    Set<Genre> findGenresByFilmId(Long filmId);
-
     void createGenreFilmRelation(Long filmId, Set<Genre> genres);
 }

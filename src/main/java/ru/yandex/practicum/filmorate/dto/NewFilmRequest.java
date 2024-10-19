@@ -27,6 +27,5 @@ public class NewFilmRequest {
     private Long duration;
     private MpaRating mpa;
     private Set<Genre> genres;
-    private Set<Long> likes;
 }
 

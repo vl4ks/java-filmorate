@@ -19,7 +19,7 @@ import java.util.Collection;
 @RequiredArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 public class FilmController {
-    private final FilmService filmService;
+    FilmService filmService;
 
     @GetMapping
     public Collection<FilmDto> getFilms() {

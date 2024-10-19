@@ -2,7 +2,6 @@ package ru.yandex.practicum.filmorate.dao.storage;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.support.GeneratedKeyHolder;
@@ -12,6 +11,7 @@ import ru.yandex.practicum.filmorate.exception.NotFoundException;
 import java.sql.PreparedStatement;
 import java.sql.Statement;
 import java.util.Collection;
+import java.util.List;
 import java.util.Optional;
 
 @Slf4j
@@ -21,10 +21,11 @@ public class BaseRepository<T> {
     protected final RowMapper<T> mapper;
 
     public Optional<T> findOne(String query, Object... params) {
-        try {
-            return Optional.ofNullable(jdbc.queryForObject(query, mapper, params));
-        } catch (EmptyResultDataAccessException e) {
+        List<T> results = jdbc.query(query, mapper, params);
+        if (results.isEmpty()) {
             return Optional.empty();
+        } else {
+            return Optional.of(results.getFirst());
         }
     }
 
@@ -56,10 +57,9 @@ public class BaseRepository<T> {
     }
 
     protected void update(String query, Object... params) {
-        try {
-            jdbc.update(query, params);
-        } catch (NotFoundException e) {
-            log.error("Запись для обновления не найдена");
+        int rowsUpdated = jdbc.update(query, params);
+        if (rowsUpdated == 0) {
+            throw new NotFoundException("Запись для обновления не найдена");
         }
     }
 }

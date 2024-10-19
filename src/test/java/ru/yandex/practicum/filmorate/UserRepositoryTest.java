@@ -6,22 +6,26 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.jdbc.JdbcTest;
 import org.springframework.context.annotation.Import;
+import ru.yandex.practicum.filmorate.dao.storage.FriendRepository;
 import ru.yandex.practicum.filmorate.dao.storage.UserRepository;
 import ru.yandex.practicum.filmorate.model.User;
 
 import java.time.LocalDate;
 import java.util.Collection;
+import java.util.List;
+import java.util.stream.Collectors;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
 
 @JdbcTest
-@Import(UserRepository.class)
+@Import({UserRepository.class, FriendRepository.class})
 @RequiredArgsConstructor(onConstructor_ = @Autowired)
 @DisplayName("UserRepository")
 class UserRepositoryTest {
     public static final long TEST_USER_ID = 1L;
     private final UserRepository userRepository;
+    private final FriendRepository friendRepository;
 
     static User getTestUser() {
         User user = new User();
@@ -81,41 +85,44 @@ class UserRepositoryTest {
     @Test
     @DisplayName("должен добавлять друга пользователю")
     public void should_add_friend() {
-        userRepository.addFriend(2L, 1L);
+        friendRepository.addFriend(2L, 1L);
 
-        Collection<User> friends = userRepository.getUserFriends(2L);
-        assertThat(friends).extracting(User::getId).contains(1L);
+        Collection<Long> friends = friendRepository.getUserFriends(2L);
+        assertThat(friends).contains(1L);
     }
 
     @Test
     @DisplayName("должен удалять друга пользователя")
     public void should_remove_friend() {
-        userRepository.removeFriend(2L, 1L);
+        friendRepository.removeFriend(2L, 1L);
 
-        Collection<User> friends = userRepository.getUserFriends(2L);
-        assertThat(friends).extracting(User::getId).doesNotContain(1L);
-        assertThat(friends).extracting(User::getId).contains(3L);
+        Collection<Long> friends = friendRepository.getUserFriends(2L);
+        assertThat(friends).doesNotContain(1L);
+        assertThat(friends).contains(3L);
     }
 
     @Test
     @DisplayName("должен возвращать список друзей пользователя")
     public void should_return_user_friends() {
-        Collection<User> friends = userRepository.getUserFriends(1L);
+        Collection<Long> friends = friendRepository.getUserFriends(1L);
 
         assertThat(friends).hasSize(2);
-        assertThat(friends).extracting(User::getName).containsExactlyInAnyOrder("User Two", "User Three");
+        List<String> friendNames = friends.stream()
+                .map(friendId -> userRepository.findById(friendId).getName())
+                .collect(Collectors.toList());
+        assertThat(friendNames).containsExactlyInAnyOrder("User Two", "User Three");
     }
 
     @Test
     @DisplayName("должен возвращать список общих друзей")
     public void should_return_common_friends() {
-        Collection<User> commonFriends = userRepository.getCommonFriends(1L, 2L);
+        Collection<Long> commonFriends = friendRepository.getCommonFriends(1L, 2L);
 
         assertThat(commonFriends).hasSize(1);
-        assertThat(commonFriends)
-                .extracting(User::getName)
-                .contains("User Three");
-
+        List<String> commonFriendNames = commonFriends.stream()
+                .map(friendId -> userRepository.findById(friendId).getName())
+                .collect(Collectors.toList());
+        assertThat(commonFriendNames).contains("User Three");
     }
 }
 

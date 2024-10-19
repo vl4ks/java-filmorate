@@ -22,28 +22,35 @@ import java.util.stream.Collectors;
 @Getter
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 public class FilmService {
-    private final FilmRepository filmRepository;
-    private final MpaRatingRepository mpaRatingRepository;
-    private final GenreRepository genreRepository;
+    FilmRepository filmRepository;
+    MpaRatingRepository mpaRatingRepository;
+    GenreRepository genreRepository;
+    LikeRepository likeRepository;
 
     public Collection<FilmDto> getAllFilms() {
-        return filmRepository.findAll()
-                .stream()
-                .map(film -> FilmMapper.mapToFilmDto(film, mpaRatingRepository.findRatingByFilmId(film.getId()),
-                        genreRepository.findGenresByFilmId(film.getId()), filmRepository.getLikes(film.getId())))
+        Collection<Film> films = filmRepository.findAllWithRatingsAndLikes();
+
+        Map<Long, Set<Genre>> filmGenres = genreRepository.findGenresByFilmIds(films.stream()
+                .map(Film::getId)
+                .collect(Collectors.toSet()));
+
+        return films.stream()
+                .map(film -> FilmMapper.mapToFilmDto(film, film.getMpa(),
+                        filmGenres.getOrDefault(film.getId(), Collections.emptySet()), film.getLikesCount()))
                 .collect(Collectors.toList());
     }
 
 
     public FilmDto getFilmById(long filmId) {
-        return FilmMapper.mapToFilmDto(filmRepository.findById(filmId), mpaRatingRepository.findRatingByFilmId(filmId),
-                genreRepository.findGenresByFilmId(filmId), filmRepository.getLikes(filmId));
+        Film film = filmRepository.findById(filmId);
+        MpaRating mpaRating = mpaRatingRepository.findRatingByFilmId(filmId);
+        Set<Genre> genres = genreRepository.findGenresByFilmId(filmId);
+
+        return FilmMapper.mapToFilmDto(film, mpaRating, genres, film.getLikesCount());
     }
 
 
     public FilmDto createFilm(NewFilmRequest newFilmRequest) {
-        Film film = filmRepository.create(newFilmRequest);
-
         if (newFilmRequest.getReleaseDate() == null) {
             throw new ParameterNotValidException("Дата выхода фильма должна быть указана");
         }
@@ -52,54 +59,56 @@ public class FilmService {
             throw new ParameterNotValidException("Дата выхода фильма не может быть в будущем и ранее 1895-12-28");
         }
 
-        if (!(newFilmRequest.getMpa() == null || newFilmRequest.getMpa().getId() == null
-                || newFilmRequest.getMpa().getId() < 1 || newFilmRequest.getMpa().getId() > 5)) {
-            mpaRatingRepository.createMpaFilmRelation(film.getId(), newFilmRequest.getMpa().getId());
-        } else {
+        if (newFilmRequest.getMpa() == null || newFilmRequest.getMpa().getId() == null
+                || newFilmRequest.getMpa().getId() < 1 || newFilmRequest.getMpa().getId() > 5) {
             throw new ParameterNotValidException("Рейтинг не должен быть равным null и id должно быть от 1 до 5");
         }
+
+        Film film = filmRepository.create(newFilmRequest);
+
 
         if (newFilmRequest.getGenres() != null && !newFilmRequest.getGenres().isEmpty()) {
             genreRepository.createGenreFilmRelation(film.getId(), newFilmRequest.getGenres());
         }
 
-        MpaRating mpaRating = mpaRatingRepository.findRatingByFilmId(film.getId());
         Set<Genre> genres = genreRepository.findGenresByFilmId(film.getId());
-        Set<Long> likes = filmRepository.getLikes(film.getId());
 
-        return FilmMapper.mapToFilmDto(film, mpaRating, genres, likes);
+        return FilmMapper.mapToFilmDto(film, film.getMpa(), genres, film.getLikesCount());
     }
 
 
     public FilmDto updateFilm(FilmDto newFilm) {
         Film film = filmRepository.update(newFilm);
 
-        if (!(newFilm.getMpa() == null) && newFilm.getMpa().getId() != 0) {
-            mpaRatingRepository.createMpaFilmRelation(film.getId(), newFilm.getMpa().getId());
-        }
         if (!(newFilm.getGenres() == null) && !newFilm.getGenres().isEmpty()) {
             genreRepository.createGenreFilmRelation(film.getId(), newFilm.getGenres());
         }
 
-        return FilmMapper.mapToFilmDto(film, mpaRatingRepository.findRatingByFilmId(film.getId()),
-                genreRepository.findGenresByFilmId(film.getId()), filmRepository.getLikes(film.getId()));
+        return FilmMapper.mapToFilmDto(
+                film,
+                mpaRatingRepository.findRatingByFilmId(film.getId()),
+                genreRepository.findGenresByFilmId(film.getId()),
+                film.getLikesCount()
+        );
     }
 
     public FilmDto addLike(long filmId, long userId) {
-        return FilmMapper.mapToFilmDto(filmRepository.addLike(filmId, userId),
+        likeRepository.addLike(filmId, userId);
+        return FilmMapper.mapToFilmDto(filmRepository.findById(filmId),
                 mpaRatingRepository.findRatingByFilmId(filmId),
-                genreRepository.findGenresByFilmId(filmId), filmRepository.getLikes(filmId));
+                genreRepository.findGenresByFilmId(filmId),
+                likeRepository.getLikeCount(filmId));
     }
 
     public void removeLike(long filmId, long userId) {
-        filmRepository.removeLike(filmId, userId);
+        likeRepository.removeLike(filmId, userId);
     }
-
 
     public Collection<FilmDto> getPopularFilms(int count) {
         return filmRepository.getPopularFilms(count).stream()
-                .map(film -> FilmMapper.mapToFilmDto(film, mpaRatingRepository.findRatingByFilmId(film.getId()),
-                        genreRepository.findGenresByFilmId(film.getId()), filmRepository.getLikes(film.getId())))
+                .map(film -> FilmMapper.mapToFilmDto(film, film.getMpa(),
+                        genreRepository.findGenresByFilmId(film.getId()),
+                        film.getLikesCount()))
                 .collect(Collectors.toList());
     }
 }

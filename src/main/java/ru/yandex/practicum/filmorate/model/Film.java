@@ -18,4 +18,8 @@ public class Film {
     private LocalDate releaseDate;
     @Positive(message = "Продолжительность фильма должна быть положительной.")
     private Long duration;
+
+    private MpaRating mpa;
+
+    private int likesCount;
 }

@@ -16,6 +16,4 @@ public interface MpaRatingStorage {
     void delete(Long id);
 
     MpaRating findRatingByFilmId(Long filmId);
-
-    void createMpaFilmRelation(Long filmId, Long ratingId);
 }

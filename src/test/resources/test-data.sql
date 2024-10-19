@@ -17,12 +17,10 @@ INSERT INTO MPA_RATINGS (name) VALUES ('PG-13');
 INSERT INTO GENRES (name) VALUES ('Комедия');
 INSERT INTO GENRES (name) VALUES ('Драма');
 
-INSERT INTO FILMS (name, description, release_date, duration)
-VALUES ('Film One', 'Description for Film One', '2000-01-01', 120);
+INSERT INTO FILMS (name, description, release_date, duration, mpa_id)
+VALUES ('Film One', 'Description for Film One', '2000-01-01', 120, 1);
 
-INSERT INTO FILMS (name, description, release_date, duration)
-VALUES ('Film Two', 'Description for Film Two', '2005-05-05', 150);
+INSERT INTO FILMS (name, description, release_date, duration, mpa_id)
+VALUES ('Film Two', 'Description for Film Two', '2005-05-05', 150, 3);
 
 INSERT INTO FILM_GENRES (film_id, genre_id) VALUES (1, 1), (1, 2);
-
-INSERT INTO FILM_RATINGS (film_id, mpa_rating_id) VALUES (2, 3);

@@ -25,7 +25,7 @@ public class FilmDto {
     @NotNull(message = "Рейтинг не должен быть пустым")
     private MpaRating mpa;
     private Set<Genre> genres;
-    private Set<Long> likes;
+    private int likesCount;
 }
 
 

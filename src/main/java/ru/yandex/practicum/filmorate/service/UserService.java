@@ -6,10 +6,12 @@ import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import ru.yandex.practicum.filmorate.dao.storage.FriendRepository;
 import ru.yandex.practicum.filmorate.dao.storage.UserRepository;
 import ru.yandex.practicum.filmorate.model.User;
 
 import java.util.*;
+import java.util.stream.Collectors;
 
 @Service
 @Slf4j
@@ -17,7 +19,8 @@ import java.util.*;
 @Getter
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 public class UserService {
-    private final UserRepository userRepository;
+    UserRepository userRepository;
+    FriendRepository friendRepository;
 
     public User createUser(User user) {
         return userRepository.create(user);
@@ -40,20 +43,28 @@ public class UserService {
     }
 
     public User addFriend(Long userId, Long friendId) {
-        return userRepository.addFriend(userId, friendId);
+        userRepository.findById(userId);
+        userRepository.findById(friendId);
+        friendRepository.addFriend(userId, friendId);
+        return userRepository.findById(userId);
     }
 
-    public Collection<User> getUserFriends(Long userId) {
+    public List<User> getUserFriends(Long userId) {
         userRepository.findById(userId);
-        return userRepository.getUserFriends(userId);
+        return friendRepository.getUserFriends(userId).stream()
+                .map(userRepository::findById)
+                .collect(Collectors.toList());
     }
 
     public void removeFriend(Long userId, Long friendId) {
-        userRepository.removeFriend(userId, friendId);
+        userRepository.findById(userId);
+        userRepository.findById(friendId);
+        friendRepository.removeFriend(userId, friendId);
     }
 
-
-    public Collection<User> getCommonFriends(Long userId, Long otherId) {
-        return userRepository.getCommonFriends(userId, otherId);
+    public List<User> getCommonFriends(Long userId, Long otherId) {
+        return friendRepository.getCommonFriends(userId, otherId).stream()
+                .map(userRepository::findById)
+                .collect(Collectors.toList());
     }
 }

@@ -17,16 +17,24 @@ import java.util.*;
 @Slf4j
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 public class FilmRepository extends BaseRepository<Film> implements FilmStorage {
-    private static final String FIND_ALL_QUERY = "SELECT * FROM FILMS";
-    private static final String FIND_BY_ID_QUERY = "SELECT * FROM FILMS WHERE id = ?";
-    private static final String ADD_LIKE_QUERY = "INSERT INTO LIKES (film_id, user_id) VALUES (?, ?)";
-    private static final String REMOVE_LIKE_QUERY = "DELETE FROM LIKES WHERE film_id = ? AND user_id = ?";
-    private static final String CREATE_FILM_QUERY = "INSERT INTO FILMS (name, description, release_date, duration) " +
-            "VALUES (?, ?, ?, ?)";
-    private static final String UPDATE_FILM_QUERY = "UPDATE FILMS SET name = ?, description = ?, release_date = ?, " +
-            "duration = ? WHERE id = ?";
-    private static final String DELETE_FILM_QUERY = "DELETE FROM FILMS WHERE id = ?";
+    private static final String FIND_ALL_WITH_RATINGS_LIKES_QUERY = """
+        SELECT f.*, mpa.id as mpa_id, mpa.name as mpa_name, COUNT(l.user_id) as likes_count
+        FROM FILMS f
+        JOIN MPA_RATINGS mpa ON f.mpa_id = mpa.id
+        LEFT JOIN LIKES l ON f.id = l.film_id
+        GROUP BY f.id, mpa.id
+        """;
 
+    private static final String FIND_BY_ID_QUERY = "SELECT * FROM FILMS WHERE id = ?";
+    private static final String CREATE_FILM_QUERY = """
+        INSERT INTO FILMS (name, description, release_date, duration, mpa_id)
+        VALUES (?, ?, ?, ?, ?)
+        """;
+    private static final String UPDATE_FILM_QUERY = """
+        UPDATE FILMS SET name = ?, description = ?, release_date = ?, duration = ?, mpa_id = ?
+        WHERE id = ?
+        """;
+    private static final String DELETE_FILM_QUERY = "DELETE FROM FILMS WHERE id = ?";
     private static final String GET_POPULAR_FILMS_QUERY = """
            SELECT f.*, COUNT(fl.user_id) AS like_count
            FROM FILMS AS f
@@ -35,16 +43,11 @@ public class FilmRepository extends BaseRepository<Film> implements FilmStorage 
            ORDER BY like_count DESC, f.id ASC
            LIMIT ?;
            """;
-    private static final String GET_LIKES_QUERY = "SELECT user_id FROM LIKES WHERE film_id = ?";
 
     public FilmRepository(JdbcTemplate jdbc) {
         super(jdbc, new FilmRowMapper());
     }
 
-    public Collection<Film> findAll() {
-        log.debug("Получение всех фильмов");
-        return findMany(FIND_ALL_QUERY);
-    }
 
     public Film findById(Long id) {
         log.debug("Поиск фильма с id={}", id);
@@ -52,28 +55,23 @@ public class FilmRepository extends BaseRepository<Film> implements FilmStorage 
                 .orElseThrow(() -> new NotFoundException("Фильм с id " + id + " не найден."));
     }
 
-    public Film addLike(Long filmId, Long userId) {
-        log.debug("Добавление лайка: filmId={}, userId={}", filmId, userId);
-        update(ADD_LIKE_QUERY, filmId, userId);
-        return findById(filmId);
-    }
-
-    public void removeLike(Long filmId, Long userId) {
-        log.debug("Удаление лайка: filmId={}, userId={}", filmId, userId);
-        jdbc.update(REMOVE_LIKE_QUERY, filmId, userId);
+    public Collection<Film> findAllWithRatingsAndLikes() {
+        log.debug("Получение всех фильмов с рейтингами и количеством лайков");
+        return findMany(FIND_ALL_WITH_RATINGS_LIKES_QUERY);
     }
 
     public Film create(NewFilmRequest film) {
         log.debug("Создание фильма: {}", film);
-        long id = insert(CREATE_FILM_QUERY, film.getName(), film.getDescription(), film.getReleaseDate(),
-                film.getDuration());
+        long id = insert(CREATE_FILM_QUERY, film.getName(), film.getDescription(),
+                film.getReleaseDate(), film.getDuration(), film.getMpa().getId());
         return findById(id);
     }
 
     public Film update(FilmDto newFilm) {
         log.debug("Обновление фильма: {}", newFilm);
-        update(UPDATE_FILM_QUERY, newFilm.getName(), newFilm.getDescription(), newFilm.getReleaseDate(),
-                newFilm.getDuration(), newFilm.getId());
+        update(UPDATE_FILM_QUERY, newFilm.getName(), newFilm.getDescription(),
+                newFilm.getReleaseDate(), newFilm.getDuration(), newFilm.getMpa().getId(),
+                newFilm.getId());
         return findById(newFilm.getId());
     }
 
@@ -85,11 +83,6 @@ public class FilmRepository extends BaseRepository<Film> implements FilmStorage 
     public Collection<Film> getPopularFilms(int count) {
         log.debug("Получение топ фильмов, количество={}", count);
         return findMany(GET_POPULAR_FILMS_QUERY, count);
-    }
-
-    public Set<Long> getLikes(Long filmId) {
-        log.debug("Получение лайков для фильма={}", filmId);
-        return new HashSet<>(jdbc.queryForList(GET_LIKES_QUERY, Long.class, filmId));
     }
 }
 
