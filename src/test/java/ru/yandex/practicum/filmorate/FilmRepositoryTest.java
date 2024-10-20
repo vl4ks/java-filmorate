@@ -91,7 +91,7 @@ public class FilmRepositoryTest {
     @Test
     @DisplayName("должен находить все фильмы")
     public void should_return_all_films() {
-        Collection<Film> films = filmRepository.findAllWithRatingsAndLikes();
+        Collection<Film> films = filmRepository.findAllWithRatings();
         assertThat(films).hasSize(2);
         assertThat(films.iterator().next())
                 .usingRecursiveComparison()
@@ -139,7 +139,7 @@ public class FilmRepositoryTest {
     @DisplayName("должен удалять фильм по id")
     public void should_delete_film_by_id() {
         filmRepository.delete(getTestFilm().getId());
-        Collection<Film> films = filmRepository.findAllWithRatingsAndLikes();
+        Collection<Film> films = filmRepository.findAllWithRatings();
         assertThat(films).extracting(Film::getId).doesNotContain(1L);
     }
 

@@ -28,7 +28,7 @@ public class FilmService {
     LikeRepository likeRepository;
 
     public Collection<FilmDto> getAllFilms() {
-        Collection<Film> films = filmRepository.findAllWithRatingsAndLikes();
+        Collection<Film> films = filmRepository.findAllWithRatings();
 
         Map<Long, Set<Genre>> filmGenres = genreRepository.findGenresByFilmIds(films.stream()
                 .map(Film::getId)
@@ -105,9 +105,17 @@ public class FilmService {
     }
 
     public Collection<FilmDto> getPopularFilms(int count) {
-        return filmRepository.getPopularFilms(count).stream()
+        Collection<Film> films = filmRepository.getPopularFilms(count);
+
+        Set<Long> filmIds = films.stream()
+                .map(Film::getId)
+                .collect(Collectors.toSet());
+
+        Map<Long, Set<Genre>> filmGenres = genreRepository.findGenresByFilmIds(filmIds);
+
+        return films.stream()
                 .map(film -> FilmMapper.mapToFilmDto(film, film.getMpa(),
-                        genreRepository.findGenresByFilmId(film.getId()),
+                        filmGenres.getOrDefault(film.getId(), Collections.emptySet()),
                         film.getLikesCount()))
                 .collect(Collectors.toList());
     }

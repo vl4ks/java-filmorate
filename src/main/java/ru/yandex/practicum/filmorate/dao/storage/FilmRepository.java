@@ -17,12 +17,10 @@ import java.util.*;
 @Slf4j
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 public class FilmRepository extends BaseRepository<Film> implements FilmStorage {
-    private static final String FIND_ALL_WITH_RATINGS_LIKES_QUERY = """
-        SELECT FILMS.*, MPA_RATINGS.id as mpa_id, MPA_RATINGS.name as mpa_name, COUNT(LIKES.user_id) as likes_count
-        FROM FILMS
-        JOIN MPA_RATINGS ON FILMS.mpa_id = MPA_RATINGS.id
-        LEFT JOIN LIKES ON FILMS.id = LIKES.film_id
-        GROUP BY FILMS.id, MPA_RATINGS.id
+    private static final String FIND_ALL_WITH_RATINGS_QUERY = """
+        SELECT *
+        FROM FILMS, MPA_RATINGS
+        WHERE FILMS.mpa_id = MPA_RATINGS.id
         """;
 
     private static final String FIND_BY_ID_QUERY = "SELECT * FROM FILMS WHERE id = ?";
@@ -55,9 +53,9 @@ public class FilmRepository extends BaseRepository<Film> implements FilmStorage 
                 .orElseThrow(() -> new NotFoundException("Фильм с id " + id + " не найден."));
     }
 
-    public Collection<Film> findAllWithRatingsAndLikes() {
-        log.debug("Получение всех фильмов с рейтингами и количеством лайков");
-        return findMany(FIND_ALL_WITH_RATINGS_LIKES_QUERY);
+    public Collection<Film> findAllWithRatings() {
+        log.debug("Получение всех фильмов с рейтингами");
+        return findMany(FIND_ALL_WITH_RATINGS_QUERY);
     }
 
     public Film create(NewFilmRequest film) {

@@ -77,14 +77,12 @@ AND friend_id IN (
 
 ## SQL-запросы для модели **Film**
 
-### Получение всех фильмов с рейтингами и лайками:
+### Получение всех фильмов с рейтингами:
 
 ```
-SELECT FILMS.*, MPA_RATINGS.id as mpa_id, MPA_RATINGS.name as mpa_name, COUNT(LIKES.user_id) as likes_count
-FROM FILMS
-JOIN MPA_RATINGS ON FILMS.mpa_id = MPA_RATINGS.id
-LEFT JOIN LIKES ON FILMS.id = LIKES.film_id
-GROUP BY FILMS.id, MPA_RATINGS.id
+SELECT *
+FROM FILMS, MPA_RATINGS
+WHERE FILMS.mpa_id = MPA_RATINGS.id
 """;
 ```
 
