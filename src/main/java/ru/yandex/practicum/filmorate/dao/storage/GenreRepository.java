@@ -27,19 +27,13 @@ public class GenreRepository extends BaseRepository<Genre> implements GenreStora
     private static final String GET_GENRE_BY_ID = "SELECT * FROM GENRES WHERE genre_id = ?";
     private static final String CREATE_GENRE = "INSERT INTO GENRES (name) VALUES (?)";
     private static final String DELETE_GENRE = "DELETE FROM GENRES WHERE genre_id = ?";
-    private static final String GET_FILM_GENRES = """
-            SELECT g.genre_id, g.name
-            FROM FILM_GENRES fg
-            JOIN GENRES g ON fg.genre_id = g.genre_id
-            WHERE fg.film_id = ?
-            """;
     private static final String CREATE_GENRE_FILM = "INSERT INTO FILM_GENRES (film_id, genre_id) VALUES (?, ?)";
 
     private static final String FIND_GENRES_BY_FILM_IDS_QUERY = """
-        SELECT fg.film_id, g.genre_id, g.name
-        FROM FILM_GENRES fg
-        JOIN GENRES g ON fg.genre_id = g.genre_id
-        WHERE fg.film_id IN (:filmIds)
+        SELECT FILM_GENRES.film_id, GENRES.genre_id, GENRES.name
+        FROM FILM_GENRES
+        JOIN GENRES ON FILM_GENRES.genre_id = GENRES.genre_id
+        WHERE FILM_GENRES.film_id IN (:filmIds)
         """;
 
     private final NamedParameterJdbcTemplate namedJdbcTemplate;
@@ -75,7 +69,12 @@ public class GenreRepository extends BaseRepository<Genre> implements GenreStora
 
     public Set<Genre> findGenresByFilmId(Long filmId) {
         log.debug("Получаем список всех жанров определенного фильма.");
-        return new LinkedHashSet<>(findMany(GET_FILM_GENRES, filmId));
+        Map<Long, Set<Genre>> genresByFilmId = findGenresByFilmIds(Set.of(filmId));
+
+        return genresByFilmId.getOrDefault(filmId, Collections.emptySet())
+                .stream()
+                .sorted(Comparator.comparing(Genre::getId))
+                .collect(Collectors.toCollection(LinkedHashSet::new));
     }
 
     public Map<Long, Set<Genre>> findGenresByFilmIds(Set<Long> filmIds) {
@@ -96,6 +95,7 @@ public class GenreRepository extends BaseRepository<Genre> implements GenreStora
 
     public void createGenreFilmRelation(Long filmId, Set<Genre> genres) {
         log.debug("Объединяем фильм и его жанры по их id.");
+        jdbc.update("DELETE FROM FILM_GENRES WHERE FILM_ID = ?", filmId);
         for (Genre genre : genres) {
             isGenreExists(genre.getId());
         }

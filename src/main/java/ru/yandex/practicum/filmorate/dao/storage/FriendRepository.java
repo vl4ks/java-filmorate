@@ -5,8 +5,11 @@ import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Repository;
+import ru.yandex.practicum.filmorate.dao.mappers.UserRowMapper;
+import ru.yandex.practicum.filmorate.model.User;
 
 import java.util.Collection;
+import java.util.List;
 
 
 @Repository
@@ -21,6 +24,20 @@ public class FriendRepository {
         FROM FRIENDS
         WHERE user_id = ?
         AND friend_id IN (SELECT friend_id FROM FRIENDS WHERE user_id = ?)
+    """;
+    private static final String GET_USER_FRIENDS_WITH_DETAILS_QUERY = """
+        SELECT USERS.*
+        FROM USERS
+        JOIN FRIENDS ON USERS.id = FRIENDS.friend_id
+        WHERE FRIENDS.user_id = ?
+    """;
+
+    private static final String GET_COMMON_FRIENDS_WITH_DETAILS_QUERY = """
+        SELECT USERS.*
+        FROM USERS
+        JOIN FRIENDS f1 ON USERS.id = f1.friend_id
+        JOIN FRIENDS f2 ON USERS.id = f2.friend_id
+        WHERE f1.user_id = ? AND f2.user_id = ?
     """;
 
     private final JdbcTemplate jdbc;
@@ -42,6 +59,14 @@ public class FriendRepository {
     public Collection<Long> getUserFriends(Long userId) {
         log.debug("Получение списка друзей пользователя с id={}", userId);
         return jdbc.queryForList(GET_USER_FRIENDS_QUERY, Long.class, userId);
+    }
+
+    public List<User> getUserFriendsWithDetails(Long userId) {
+        return jdbc.query(GET_USER_FRIENDS_WITH_DETAILS_QUERY, new UserRowMapper(), userId);
+    }
+
+    public List<User> getCommonFriendsWithDetails(Long userId1, Long userId2) {
+        return jdbc.query(GET_COMMON_FRIENDS_WITH_DETAILS_QUERY, new UserRowMapper(), userId1, userId2);
     }
 
     public Collection<Long> getCommonFriends(Long userId, Long otherId) {

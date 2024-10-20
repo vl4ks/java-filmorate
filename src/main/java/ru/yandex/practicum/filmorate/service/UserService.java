@@ -11,7 +11,6 @@ import ru.yandex.practicum.filmorate.dao.storage.UserRepository;
 import ru.yandex.practicum.filmorate.model.User;
 
 import java.util.*;
-import java.util.stream.Collectors;
 
 @Service
 @Slf4j
@@ -51,9 +50,7 @@ public class UserService {
 
     public List<User> getUserFriends(Long userId) {
         userRepository.findById(userId);
-        return friendRepository.getUserFriends(userId).stream()
-                .map(userRepository::findById)
-                .collect(Collectors.toList());
+        return friendRepository.getUserFriendsWithDetails(userId);
     }
 
     public void removeFriend(Long userId, Long friendId) {
@@ -63,8 +60,9 @@ public class UserService {
     }
 
     public List<User> getCommonFriends(Long userId, Long otherId) {
-        return friendRepository.getCommonFriends(userId, otherId).stream()
-                .map(userRepository::findById)
-                .collect(Collectors.toList());
+        userRepository.findById(userId);
+        userRepository.findById(otherId);
+        return friendRepository.getCommonFriendsWithDetails(userId, otherId);
+
     }
 }

@@ -2,7 +2,7 @@
 Template repository for Filmorate project.
 
 Выполнила ТЗ 10 без дополнительного задания
- 
+
 Выполнила ТЗ 11
 
 Выполнила ТЗ 12
@@ -80,11 +80,12 @@ AND friend_id IN (
 ### Получение всех фильмов с рейтингами и лайками:
 
 ```
-SELECT f.*, mpa.id AS mpa_id, mpa.name AS mpa_name, COUNT(l.user_id) AS likes_count
-FROM FILMS f
-JOIN MPA_RATINGS mpa ON f.mpa_id = mpa.id
-LEFT JOIN LIKES l ON f.id = l.film_id
-GROUP BY f.id, mpa.id;
+SELECT FILMS.*, MPA_RATINGS.id as mpa_id, MPA_RATINGS.name as mpa_name, COUNT(LIKES.user_id) as likes_count
+FROM FILMS
+JOIN MPA_RATINGS ON FILMS.mpa_id = MPA_RATINGS.id
+LEFT JOIN LIKES ON FILMS.id = LIKES.film_id
+GROUP BY FILMS.id, MPA_RATINGS.id
+""";
 ```
 
 ### Получение фильма по ID:
@@ -127,12 +128,13 @@ WHERE film_id = ? AND user_id = ?;
 ### Получение списка популярных фильмов:
 
 ```
-SELECT f.*, COUNT(fl.user_id) AS like_count
-FROM FILMS AS f
-LEFT JOIN LIKES AS fl ON f.id = fl.film_id
-GROUP BY f.id
-ORDER BY like_count DESC, f.id ASC
+SELECT FILMS.*, COUNT(LIKES.user_id) AS like_count
+FROM FILMS
+LEFT JOIN LIKES ON FILMS.id = LIKES.film_id
+GROUP BY FILMS.id
+ORDER BY like_count DESC, FILMS.id ASC
 LIMIT ?;
+""";
 ```
 
 ### Получение количества лайков для фильма:

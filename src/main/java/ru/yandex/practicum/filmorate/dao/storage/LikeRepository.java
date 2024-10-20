@@ -1,6 +1,7 @@
 package ru.yandex.practicum.filmorate.dao.storage;
 
 import lombok.AccessLevel;
+import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -8,6 +9,7 @@ import org.springframework.stereotype.Repository;
 
 @Repository
 @Slf4j
+@RequiredArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 public class LikeRepository {
     private static final String ADD_LIKE_QUERY = "INSERT INTO LIKES (film_id, user_id) VALUES (?, ?)";
@@ -15,10 +17,6 @@ public class LikeRepository {
     private static final String GET_LIKE_COUNT_QUERY = "SELECT COUNT(user_id) FROM LIKES WHERE film_id = ?";
 
     JdbcTemplate jdbc;
-
-    public LikeRepository(JdbcTemplate jdbc) {
-        this.jdbc = jdbc;
-    }
 
     public void addLike(Long filmId, Long userId) {
         log.debug("Добавление лайка: filmId={}, userId={}", filmId, userId);
